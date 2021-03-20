@@ -4,9 +4,11 @@
 #include <iostream>
 #include "RingBuffer.h"
 #include "FileMap.h"
+#include "SkipList.h"
 
 RingBuffer::RingBuffer<char,1024> ringbuf;
 FileMap::FileMap filemap;
+SkipList::SkipList<unsigned long> skiplist;
 
 int main()
 {
@@ -17,9 +19,10 @@ int main()
 		str[i] = i+65;
 	}
 
-	ringbuf.write(str, 100);
+	ringbuf.Write(str, 100);
 
-	ringbuf.read(&str[100], 100);
+	ringbuf.Read(&str[101], 100);
 
-	std::cout << str;
+	std::cout << str << std::endl;
+	std::cout << &str[101] << std::endl;
 }

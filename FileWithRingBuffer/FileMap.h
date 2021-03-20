@@ -103,7 +103,7 @@ namespace FileMap
 				return false;
 			}
 
-			readnum = m_buffer.read(poutput, readnum);
+			readnum = m_buffer.Read(poutput, readnum);
 
 			return true;
 		}

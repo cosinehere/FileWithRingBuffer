@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+#include "Mutex.h"
 
 namespace RingBuffer
 {
@@ -13,8 +13,7 @@ namespace RingBuffer
 		size_t m_tail;
 		size_t m_used;
 
-		class mutex;
-		mutex _mtx;
+		Mutex::Mutex _mtx;
 	public:
 		RingBuffer()
 		{
@@ -23,8 +22,8 @@ namespace RingBuffer
 			m_used = 0;
 			memset(m_buffer, 0, sizeof(m_buffer));
 		}
-		
-		size_t read(T* poutput, size_t readnum)
+
+		size_t Read(T* poutput, size_t readnum)
 		{
 			_mtx.lock();
 
@@ -50,7 +49,7 @@ namespace RingBuffer
 			return readed;
 		}
 
-		size_t write(T* pinput, size_t writenum)
+		size_t Write(T* pinput, size_t writenum)
 		{
 			_mtx.lock();
 
@@ -76,7 +75,7 @@ namespace RingBuffer
 			return written;
 		}
 
-		void clean()
+		void Clean()
 		{
 			_mtx.lock();
 
@@ -86,33 +85,5 @@ namespace RingBuffer
 
 			_mtx.unlock();
 		}
-
-	private:
-		class mutex
-		{
-		private:
-			CRITICAL_SECTION p_cs;
-		public:
-			mutex()
-			{
-				InitializeCriticalSection(&p_cs);
-			}
-
-			~mutex()
-			{
-				DeleteCriticalSection(&p_cs);
-			}
-
-			void lock()
-			{
-				EnterCriticalSection(&p_cs);
-			}
-
-			void unlock()
-			{
-				LeaveCriticalSection(&p_cs);
-			}
-		};
 	};
-
 }
