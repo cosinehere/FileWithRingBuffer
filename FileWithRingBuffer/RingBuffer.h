@@ -4,7 +4,7 @@
 
 namespace RingBuffer
 {
-	template<typename T, size_t buffer_size = 32>
+	template<typename T, size_t buffer_size>
 	class RingBuffer
 	{
 	private:
@@ -21,6 +21,7 @@ namespace RingBuffer
 			m_head = 0;
 			m_tail = 0;
 			m_used = 0;
+			memset(m_buffer, 0, sizeof(m_buffer));
 		}
 		
 		size_t read(T* poutput, size_t readnum)
@@ -73,6 +74,17 @@ namespace RingBuffer
 			_mtx.unlock();
 
 			return written;
+		}
+
+		void clean()
+		{
+			_mtx.lock();
+
+			m_head = 0;
+			m_tail = 0;
+			m_used = 0;
+
+			_mtx.unlock();
 		}
 
 	private:

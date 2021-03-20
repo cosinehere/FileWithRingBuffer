@@ -3,8 +3,10 @@
 
 #include <iostream>
 #include "RingBuffer.h"
+#include "FileMap.h"
 
 RingBuffer::RingBuffer<char,1024> ringbuf;
+FileMap::FileMap filemap;
 
 int main()
 {
