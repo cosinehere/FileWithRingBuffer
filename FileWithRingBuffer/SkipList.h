@@ -94,7 +94,7 @@ namespace SkipList
 			m_length = 0;
 			m_tail = new SkipListNode<T>(0, 0);
 			m_head = new SkipListNode<T>(0, SL_MAXLVL, m_tail);
-			memset(&m_head->value, 0xff, sizeof(T));
+			memset(&m_tail->value, 0xff, sizeof(T));
 
 			m_init = true;
 
@@ -231,7 +231,7 @@ namespace SkipList
 				update[lvl] = m_head;
 			}
 
-			SkipListNode<T>* node = new SkipListNode<T>*(val, lvl);
+			SkipListNode<T>* node = new SkipListNode<T>(val, lvl);
 			for (int i = lvl; i >= 0; --i)
 			{
 				p = update[i];
