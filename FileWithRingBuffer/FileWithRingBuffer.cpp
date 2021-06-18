@@ -4,25 +4,116 @@
 #include <iostream>
 #include "RingBuffer.h"
 #include "FileMap.h"
-#include "SkipList.h"
+
+#include <io.h>
+#include <set>
+#include <string>
 
 RingBuffer::RingBuffer<char,1024> ringbuf;
 FileMap::FileMap filemap;
-SkipList::SkipList<unsigned long> skiplist;
+
+void FindFiles(const char* path, std::set<std::string>& files)
+{
+	std::string format = path;
+	format.append("\\*");
+	struct _finddata_t info;
+	intptr_t hfile;
+	hfile = _findfirst(format.c_str(), &info);
+	if (hfile != -1)
+	{
+		do {
+			if (info.attrib&_A_SUBDIR)
+			{
+				if (strcmp(info.name, ".") && strcmp(info.name, ".."))
+				{
+					std::string folder = path;
+					folder.append("\\");
+					folder.append(info.name);
+					FindFiles(folder.c_str(), files);
+				}
+			}
+			else
+			{
+				std::string fullpath = path;
+				fullpath.append("\\");
+				fullpath.append(info.name);
+				files.insert(fullpath);
+			}
+		} while (_findnext(hfile, &info) == 0);
+
+		_findclose(hfile);
+	}
+}
 
 int main()
 {
-	char str[256];
-	memset(str, 0, sizeof(str));
-	for (int i = 0; i < 100; i++)
+// 	char str[256];
+// 	memset(str, 0, sizeof(str));
+// 	for (int i = 0; i < 100; i++)
+// 	{
+// 		str[i] = i+65;
+// 	}
+// 
+// 	ringbuf.Write(str, 100);
+// 
+// 	ringbuf.Read(&str[101], 100);
+// 
+// 	std::cout << str << std::endl;
+// 	std::cout << &str[101] << std::endl;
+
+// 	filemap.Open("E:\\VBox\\VBox_Win10_1909_x64\\VBox_Win10_1909_x64.vdi", 0);
+// 	//filemap.ReadFromFile();
+// 	uint8_t buf[1024];
+// 	while (1)
+// 	{
+// 		DWORD dwrd = 1024;
+// 		filemap.Read(buf, dwrd);
+// 		if (dwrd == 0)
+// 		{
+// 			if (!filemap.ReadFromFile())
+// 			{
+// 				break;
+// 			}
+// 		}
+// 	}
+	//std::cout << filemap.Read(buf, dwrd) << std::endl;
+// 	for (int i = 0; i < 1024; ++i)
+// 	{
+// 		std::cout << buf[i];
+// 	}
+
+// 	filemap.Close();
+
+	std::set<std::string> files;
+	files.clear();
+
+	//files.insert(std::string("E:\\VBox\\VBox_Win10_1909_x64\\VBox_Win10_1909_x64.vdi"));
+	FindFiles("E:\\src_3.5_win7_2021_V1.07a\\_Release", files);
+	DWORDLONG a = GetTickCount64();
+	int cnt = 0;
+	for (auto it = files.begin(); it != files.end(); ++it)
 	{
-		str[i] = i+65;
+		if (filemap.Open(it->c_str(), 0))
+		{
+			++cnt;
+			//printf("%s\n", it->c_str());
+			uint8_t buf[1024];
+			while (1)
+			{
+				DWORD dwrd = 1024;
+				if (!filemap.Read(buf, dwrd))
+				{
+					break;
+				}
+			}
+			filemap.Close();
+		}
+		else
+		{
+			//printf("%s\n", it->c_str());
+		}
 	}
 
-	ringbuf.Write(str, 100);
-
-	ringbuf.Read(&str[101], 100);
-
-	std::cout << str << std::endl;
-	std::cout << &str[101] << std::endl;
+	DWORDLONG b = GetTickCount64();
+	printf("size %d, opened %d cost %llu\n", files.size(), cnt, b - a);
 }
