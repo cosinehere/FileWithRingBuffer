@@ -16,8 +16,10 @@ FileMap::FileMap()
 	m_mapsize = 0;
 	m_mapoffset = 0;
 
+#ifdef _FILEMAP_USE_RINGBUFFER_
 	m_hReadFromFile = nullptr;
 	m_bReadFromFile = false;
+#endif
 }
 
 FileMap::~FileMap()
@@ -53,9 +55,8 @@ bool FileMap::Open(LPCTSTR strFile, DWORDLONG offset)
 	}
 
 	m_mapsize = ((m_filesize.quad - offset) > MAP_SIZE) ? MAP_SIZE : static_cast<DWORD>(m_filesize.quad - offset);
-	m_fileoffset.quad = offset & OFFSET_MASK_HIGH;
-	m_mapoffset = offset & OFFSET_MASK_LOW;
-
+	m_fileoffset.quad = offset & OFFSET_MASK_FILE;
+	m_mapoffset = offset & OFFSET_MASK_MAP;
 	m_pMap = MapViewOfFile(m_hMap, FILE_MAP_READ, m_fileoffset.high, m_fileoffset.low, m_mapsize);
 	if (m_pMap == nullptr)
 	{
@@ -66,14 +67,17 @@ bool FileMap::Open(LPCTSTR strFile, DWORDLONG offset)
 
 	m_bOpen = true;
 
+#ifdef _FILEMAP_USE_RINGBUFFER_
 	m_bReadFromFile = true;
 	m_hReadFromFile = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, readfromfilethread, this, 0, NULL));
+#endif
 
 	return true;
 }
 
 void FileMap::Close()
 {
+#ifdef _FILEMAP_USE_RINGBUFFER_
 	if (m_hReadFromFile != nullptr)
 	{
 		m_bReadFromFile = false;
@@ -82,6 +86,7 @@ void FileMap::Close()
 	}
 
 	m_buffer.Clean();
+#endif
 
 	if (m_bOpen == false)
 	{
@@ -101,12 +106,23 @@ bool FileMap::Read(unsigned char* poutput, DWORD& readnum)
 		return false;
 	}
 
+#ifdef _FILEMAP_USE_RINGBUFFER_
 	readnum = m_buffer.Read(poutput, readnum);
+#else
+	DWORD read = (readnum > m_mapsize - m_mapoffset) ? (m_mapsize - m_mapoffset) : readnum;
+	memcpy_s(poutput, readnum * sizeof(unsigned char), reinterpret_cast<unsigned char*>(m_pMap)+m_mapoffset, read * sizeof(unsigned char));
+	readnum = read;
+	m_mapoffset += read;
+	if (m_mapoffset >= m_mapsize)
+	{
+		return Remap();
+	}
+#endif
 
 	return true;
 }
 
-
+#ifdef _FILEMAP_USE_RINGBUFFER_
 bool FileMap::ReadFromFile()
 {
 	if (m_bOpen == false)
@@ -134,6 +150,7 @@ bool FileMap::ReadFromFile()
 
 	return false;
 }
+#endif
 
 bool FileMap::Remap()
 {
@@ -143,8 +160,8 @@ bool FileMap::Remap()
 	}
 
 	DWORDLONG offset = m_fileoffset.quad + m_mapoffset;
-	m_fileoffset.quad = offset & OFFSET_MASK_HIGH;
-	m_mapoffset = offset & OFFSET_MASK_LOW;
+	m_fileoffset.quad = offset & OFFSET_MASK_FILE;
+	m_mapoffset = offset & OFFSET_MASK_MAP;
 
 	UnmapViewOfFile(m_pMap);
 	m_mapsize = ((m_filesize.quad - offset) > MAP_SIZE) ? MAP_SIZE : static_cast<DWORD>(m_filesize.quad - offset);
@@ -157,6 +174,7 @@ bool FileMap::Remap()
 	return true;
 }
 
+#ifdef _FILEMAP_USE_RINGBUFFER_
 UINT __stdcall readfromfilethread(LPVOID lpParam)
 {
 	FileMap* pmap = reinterpret_cast<FileMap*>(lpParam);
@@ -174,5 +192,5 @@ UINT __stdcall readfromfilethread(LPVOID lpParam)
 
 	return 0;
 }
-
+#endif
 };

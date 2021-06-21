@@ -87,26 +87,38 @@ int main()
 	std::set<std::string> files;
 	files.clear();
 
-	//files.insert(std::string("E:\\VBox\\VBox_Win10_1909_x64\\VBox_Win10_1909_x64.vdi"));
-	FindFiles("E:\\src_3.5_win7_2021_V1.07a\\_Release", files);
+	files.insert(std::string("I:\\迅雷下载\\cn_windows_10_consumer_editions_version_1909_updated_jan_2020_x64_dvd_47161f17.iso"));
+	//FindFiles("E:\\src_3.5_win7_2021_V1.07a\\_Release", files);
 	DWORDLONG a = GetTickCount64();
 	int cnt = 0;
 	for (auto it = files.begin(); it != files.end(); ++it)
 	{
 		if (filemap.Open(it->c_str(), 0))
 		{
+			FILE* f = nullptr;
+			fopen_s(&f, "output.txt", "wb");
+			DWORDLONG size = 0;
 			++cnt;
 			//printf("%s\n", it->c_str());
-			uint8_t buf[1024];
+			uint8_t* buf = new uint8_t[1024 * 1024 * 16];
 			while (1)
 			{
-				DWORD dwrd = 1024;
+				DWORD dwrd = 1024 * 1024 * 16;
 				if (!filemap.Read(buf, dwrd))
 				{
 					break;
 				}
+				size += dwrd;
+// 				for (int i = 0; i < dwrd; ++i)
+// 				{
+// 					printf("%c", buf[i]);
+// 				}
+				fwrite(buf, sizeof(uint8_t), dwrd, f);
+				//printf("read %lu\n", dwrd);
 			}
 			filemap.Close();
+			fclose(f);
+			printf("size = %llu\n", size);
 		}
 		else
 		{
