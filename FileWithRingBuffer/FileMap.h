@@ -13,12 +13,20 @@ constexpr DWORDLONG  OFFSET_MASK_MAP = 0x000000000fffffffULL;
 
 class FileMap
 {
+public:
+	enum enum_mode {
+		enum_mode_read = 0,
+		enum_mode_write,
+		enum_mode_readwrite
+	};
+
 private:
 #ifdef _FILEMAP_USE_RINGBUFFER_
 	RingBuffer::RingBuffer<unsigned char, BUFFER_SIZE> m_buffer;
 #endif
 
 	bool m_bOpen;
+	enum_mode m_eMode;
 	HANDLE m_hFile;
 	HANDLE m_hMap;
 	LPVOID m_pMap;
@@ -43,10 +51,11 @@ public:
 	~FileMap();
 
 	bool Open(LPCTSTR strFile, DWORDLONG offset);
+	bool Open(LPCTSTR strFile, enum_mode mode);
 	void Close();
 	bool Read(unsigned char* poutput, DWORD& readnum);
+	bool Write(unsigned char* pinput, DWORD& writenum);
 
-private:
 #ifdef _FILEMAP_USE_RINGBUFFER_
 	bool ReadFromFile();
 #endif
